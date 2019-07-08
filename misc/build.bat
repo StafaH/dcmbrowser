@@ -1,4 +1,4 @@
-::@echo off
+@echo off
 
 :: Uncomment to debug the vsvarsall call
 set VSCMD_DEBUG=1
@@ -28,7 +28,7 @@ set GLEWLibPath=..\deps\lib\GLEW\glew32s.lib ..\deps\lib\GLEW\glew32.lib
 set CodePath=..\code\*.cpp
 set ImGuiPath=..\code\imgui\*.cpp
 
-cl %CommonCompilerFlags% %CodePath% %ImGuiPath% /link %CommonLinkerFlags% %GLEWLibPath% %GLFWLibpath% /Fe:"dcmbrowser"
+cl %CommonCompilerFlags% %CodePath% %ImGuiPath% /link %CommonLinkerFlags% %GLEWLibPath% %GLFWLibpath% /out:"dcmbrowser.exe"
  
 :: Copy dependencies if needed
  
