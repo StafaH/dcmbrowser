@@ -5,35 +5,55 @@
 
 // Standard Libraries
 #include <stdio.h>
+#include <iostream>
 
 // Window/Rendering Libraries
-#include <GL/glew.h>    // Initialize with glewInit()
+#include <GL/glew.h> // Initialize with glewInit()
 #include <GLFW/glfw3.h>
+
+//dcmtk
+#include <dcmtk/dcmdata/dctk.h>
 
 // Local Includes
 #include "ui.h"
 
-static void glfw_error_callback(int error, const char* description)
+static void glfw_error_callback(int error, const char *description)
 {
     fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
-int main(int, char**)
+int main(int, char **)
 {
+    // Test dcmtk
+    DcmFileFormat fileformat;
+    OFCondition status = fileformat.loadFile("test.dcm");
+    if (status.good())
+    {
+        OFString patientName;
+        if (fileformat.getDataset()->findAndGetOFString(DCM_PatientName, patientName).good())
+        {
+            std::cout << "Patient's Name: " << patientName << std::endl;
+        }
+        else
+            std::cerr << "Error: cannot access Patient's Name!" << std::endl;
+    }
+    else
+        std::cerr << "Error: cannot read DICOM file (" << status.text() << ")" << std::endl;
+
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
         return 1;
 
     // GL 3.0 + GLSL 130
-    const char* glsl_version = "#version 130";
+    const char *glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 
     // Create window with graphics context
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL3 example", NULL, NULL);
     if (window == NULL)
         return 1;
     glfwMakeContextCurrent(window);
@@ -48,15 +68,14 @@ int main(int, char**)
         return 1;
     }
 
-    
     InitializeImGui(window, glsl_version);
-    
+
     UIState uiState;
 
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
-        
+
         glfwPollEvents();
 
         RenderImGui(window, uiState);
