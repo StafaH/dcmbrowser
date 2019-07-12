@@ -4,6 +4,8 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
+#include <filesystem>
+#include <vector>
 
 struct UIState
 {
@@ -16,19 +18,26 @@ struct UIState
     bool no_titlebar = true;
     bool no_scrollbar = false;
     bool no_menu = true;
-    bool no_move = false;
-    bool no_resize = false;
-    bool no_collapse = false;
+    bool no_move = true;
+    bool no_resize = true;
+    bool no_collapse = true;
     bool no_close = false;
     bool no_nav = false;
     bool no_background = true;
     bool no_bring_to_front = false;
+
+    // UI State Variables
+    char search_folder_path[255];
+    bool scan_subdirectories = false;
+    std::vector<std::filesystem::path> dicom_file_paths;
+    int selected_dicom_file = 0;
+    char organize_folder_path[255] = "C:/DICOM/";
 };
 
 // UI main class
 void InitializeImGui(GLFWwindow* window, const char* glsl_version);
 
-void RenderImGui(GLFWwindow* window, UIState state);
+void RenderImGui(GLFWwindow* window, UIState& state);
 
 void CleanupImGui();
 

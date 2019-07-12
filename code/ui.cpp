@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "tinyfiledialogs/tinyfiledialogs.h"
 
 void InitializeImGui(GLFWwindow *window, const char *glsl_version)
 {
@@ -34,7 +35,7 @@ void InitializeImGui(GLFWwindow *window, const char *glsl_version)
     //IM_ASSERT(font != NULL);
 }
 
-void RenderImGui(GLFWwindow *window, UIState state)
+void RenderImGui(GLFWwindow *window, UIState& state)
 {
     // Start the Dear ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
@@ -54,6 +55,9 @@ void RenderImGui(GLFWwindow *window, UIState state)
 
     // Main UI Interface
     ImGui::SetNextWindowPos(ImVec2(0, 20));
+    int width, height;
+    glfwGetWindowSize(window, &width, &height);
+    ImGui::SetNextWindowSize(ImVec2(width, height));
     if(ImGui::Begin("dcmbrowser", &state.open, state.window_flags))
     {
         // Menu Bar
@@ -68,18 +72,84 @@ void RenderImGui(GLFWwindow *window, UIState state)
         }
         
         // File Browsing
-        ImGui::Text("Folder Input Text Widget Will Go Here");
+        ImGui::Text("Enter folder with DICOM files:");
         ImGui::SameLine();
-        if(ImGui::Button("...")) {} // Browse Code Here
+        ImGui::InputText("", state.search_folder_path, IM_ARRAYSIZE(state.search_folder_path));
+        ImGui::SameLine();
+        if(ImGui::Button("...##searchdir")) 
+        {
+            const char* folder_path = tinyfd_selectFolderDialog("Select a DICOM Folder", "C:/");
+            if (!folder_path) {/*Process Errors*/}
+            strcpy_s(state.search_folder_path, folder_path);
+        }
         ImGui::SameLine(); 
-        if (ImGui::Button("Scan")) {} // Scan Code Here)
+        if (ImGui::Button("Scan")) 
+        {
+            if (!state.scan_subdirectories)
+            {
+                for (auto& p: std::filesystem::directory_iterator(state.search_folder_path))
+                {
+                    if (p.path().extension() == ".dcm")
+                    {
+                        state.dicom_file_paths.emplace_back(p); 
+                    }
+                }
+            }
+            else
+            {
+                for (auto& p: std::filesystem::recursive_directory_iterator(state.search_folder_path))
+                {
+                    if (p.path().extension() == ".dcm")
+                    {
+                    }
+                }
+            }
+        }
+
+        // Options for directory browsing scanning
+        ImGui::Checkbox("Scan subdirectories", &state.scan_subdirectories);
 
         // File Display (Left)
+        ImGui::BeginChild("Left Pane", ImVec2(300, 600), true);
+            for (int i = 0; i < state.dicom_file_paths.size(); i++)
+            {
+                if (ImGui::Selectable((char*)state.dicom_file_paths[i].filename().string().c_str(), state.selected_dicom_file == i))
+                    state.selected_dicom_file = i;
+            }
+        ImGui::EndChild();
+        ImGui::SameLine();
 
         // File Properties (Right)
+        ImGui::BeginChild("Right Pane", ImVec2(800, 600), true);
+            ImGui::Text("Item Title");
+            ImGui::BeginTabBar("Properties Tab", ImGuiTabBarFlags_None);
+                if(ImGui::BeginTabItem("Preview"))
+                {
+                    ImGui::Text("Some Text");
+                    ImGui::Text("Some Image");
+                    ImGui::EndTabItem();
+                }
+                if(ImGui::BeginTabItem("Tags"))
+                {
+                    ImGui::Text("Some Tags");
+                    ImGui::EndTabItem();
+                }
+            ImGui::EndTabBar();
+        ImGui::EndChild();
 
         // File Manipulation Options
-        
+        ImGui::Button("Anonymize");
+        ImGui::SameLine();
+        ImGui::Button("Organize Into Single Directory");
+        ImGui::SameLine();
+        ImGui::InputText("", state.organize_folder_path, IM_ARRAYSIZE(state.organize_folder_path));
+        ImGui::SameLine();
+        if(ImGui::Button("...##organizedir")) 
+        {
+            const char* folder_path = tinyfd_selectFolderDialog("Select a DICOM Folder", "C:/");
+            if (!folder_path) {/*Process Errors*/}
+            strcpy_s(state.organize_folder_path, folder_path);
+        }
     }
     ImGui::End();
     
