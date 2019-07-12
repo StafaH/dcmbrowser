@@ -1,12 +1,7 @@
 @echo off
 
-:: This batch file will call the msvc C++ compiler and build the project. exe can be found in the /build/ directory
-:: Using a shell and opening the editor will make building much faster as the developer prompt does not need to be called every time
-:: Please see build_vscode.bat and shell_vscode.bat as an example 
-
-:: Uncomment to debug the vsvarsall call
-set VSCMD_DEBUG=1
-call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
+:: This batch file requires a developer command prompt as shown shell_vscode.bat 
+:: Compiling is substantially faster if you open your editor using the developer cmd instead of calling vcvarsall.bat
 
 :: %~dp0 Cool way of getting the d = drive and p = path name of the current batch file.
 set BuildDir=%~dp0..\build
@@ -43,6 +38,7 @@ set tfdPath=..\code\tinyfiledialogs\tinyfiledialogs.c
 cl %CommonCompilerFlags% %CodePath% %ImGuiPath% %tfdPath% /link %CommonLinkerFlags% %dcmtkPath% %GLEWLibPath% %GLFWLibpath% /out:"dcmbrowser.exe"
  
 :: Copy dependencies if needed (dll, config)
+
 
 
 echo .........
