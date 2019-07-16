@@ -34,7 +34,8 @@ struct DicomPatient
 };
 
 struct UIState
-{
+{    
+public: 
     bool open = true;
     bool show_demo_window = false;
     ImVec4 clear_color = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);

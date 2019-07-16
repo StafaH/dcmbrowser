@@ -239,7 +239,7 @@ void RenderImGui(GLFWwindow *window, UIState &state, std::vector<DicomPatient> &
                                         node_flags |= ImGuiTreeNodeFlags_Selected;
                                     }
                                     // Generate a unique id for this item using the loop variables
-                                    int id = l + (10 * k ) + (100 * j) + (1000 * i);
+                                    int id = l + (10 * k) + (100 * j) + (1000 * i);
                                     ImGui::TreeNodeEx((void *)(intptr_t)id, node_flags, "File %d", id);
                                     if (ImGui::IsItemClicked())
                                     {
@@ -247,7 +247,7 @@ void RenderImGui(GLFWwindow *window, UIState &state, std::vector<DicomPatient> &
                                         state.study_index = j;
                                         state.series_index = k;
                                         state.file_index = l;
-                                        
+
                                         //node_clicked = i;
                                     }
                                 }
@@ -260,14 +260,14 @@ void RenderImGui(GLFWwindow *window, UIState &state, std::vector<DicomPatient> &
                 ImGui::TreePop();
             }
             if (node_clicked != -1)
-                {
-                    // Update selection state. Process outside of tree loop to avoid visual inconsistencies during the clicking-frame.
-                    if (ImGui::GetIO().KeyCtrl)
-                        selection_mask ^= (1 << node_clicked);
-                    else
-                        selection_mask = (1 << node_clicked);
-                }
-                ImGui::PopStyleVar();
+            {
+                // Update selection state. Process outside of tree loop to avoid visual inconsistencies during the clicking-frame.
+                if (ImGui::GetIO().KeyCtrl)
+                    selection_mask ^= (1 << node_clicked);
+                else
+                    selection_mask = (1 << node_clicked);
+            }
+            ImGui::PopStyleVar();
             //if (ImGui::Selectable((char *)state.dicom_file_paths[i].filename().string().c_str(), state.selected_dicom_file == i))
             // state.selected_dicom_file = i;
         }
@@ -276,20 +276,38 @@ void RenderImGui(GLFWwindow *window, UIState &state, std::vector<DicomPatient> &
 
         // File Properties (Right)
         ImGui::BeginChild("Right Pane", ImVec2(800, 600), true);
-        ImGui::Text("Item Title");
+        ImGui::Text("DICOM File Information;");
+        
         ImGui::BeginTabBar("Properties Tab", ImGuiTabBarFlags_None);
+        
+        // Vectors of tags to be used for preview tab
+        std::vector<DcmTagKey> important_tags =
+            {DCM_PatientName, DCM_PatientID, DCM_StudyDate, DCM_StudyTime, DCM_StudyID, DCM_SeriesNumber,
+            DCM_ReferringPhysicianName, DCM_PatientSex, DCM_PatientBirthDate, DCM_InstanceNumber};
+        
         if (ImGui::BeginTabItem("Preview"))
         {
-            ImGui::Text("Some Text");
-            ImGui::Text("Some Image");
+            if (!dicom_collection.empty())
+            {
+                // Retrive the information currently indexed(selected) file
+                DcmFileFormat file = dicom_collection[state.patient_index].dicom_studies[state.study_index].dicom_series[state.series_index].dicom_files[state.file_index];
+                for (int i = 0; i < important_tags.size(); i++)
+                {
+                    OFString value;
+                    OFCondition status = file.getDataset()->findAndGetOFString(important_tags[i], value);
+                    if (!status.good()) value = "Unable to find this tag";
+                    ImGui::Text(value.c_str());
+                }
+            }
             ImGui::EndTabItem();
+
+            if (ImGui::BeginTabItem("Tags"))
+            {
+                ImGui::Text("Some Tags");
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
         }
-        if (ImGui::BeginTabItem("Tags"))
-        {
-            ImGui::Text("Some Tags");
-            ImGui::EndTabItem();
-        }
-        ImGui::EndTabBar();
         ImGui::EndChild();
 
         // File Manipulation Options
