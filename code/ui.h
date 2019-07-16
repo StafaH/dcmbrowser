@@ -58,6 +58,12 @@ struct UIState
     std::vector<std::filesystem::path> dicom_file_paths;
     int selected_dicom_file = 0;
     char organize_folder_path[255] = "C:/DICOM/";
+
+    //index to store which dicom file is selected
+    int patient_index = 0;
+    int study_index = 0;
+    int series_index = 0;
+    int file_index = 0;
 };
 
 // UI main class

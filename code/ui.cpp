@@ -213,10 +213,63 @@ void RenderImGui(GLFWwindow *window, UIState &state, std::vector<DicomPatient> &
 
         // File Display (Left)
         ImGui::BeginChild("Left Pane", ImVec2(300, 600), true);
-        for (int i = 0; i < state.dicom_file_paths.size(); i++)
+        for (int i = 0; i < dicom_collection.size(); i++)
         {
-            if (ImGui::Selectable((char *)state.dicom_file_paths[i].filename().string().c_str(), state.selected_dicom_file == i))
-                state.selected_dicom_file = i;
+            // Generate a tree node for each step of the heigharchy
+            //ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+            static int selection_mask = (1 << 2);
+            int node_clicked = -1;
+            ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, ImGui::GetFontSize() * 3);
+
+            if (ImGui::TreeNode(dicom_collection[i].patient_name.c_str()))
+            {
+                for (int j = 0; j < dicom_collection[i].dicom_studies.size(); j++)
+                {
+                    if (ImGui::TreeNode(dicom_collection[i].dicom_studies[j].study_id.c_str()))
+                    {
+                        for (int k = 0; k < dicom_collection[i].dicom_studies[j].dicom_series.size(); k++)
+                        {
+                            if (ImGui::TreeNode(dicom_collection[i].dicom_studies[j].dicom_series[k].series_id.c_str()))
+                            {
+                                for (int l = 0; l < dicom_collection[i].dicom_studies[j].dicom_series[k].dicom_files.size(); l++)
+                                {
+                                    ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen; // ImGuiTreeNodeFlags_Bullet
+                                    if (state.patient_index == i && state.study_index == j && state.series_index == k && state.file_index == l)
+                                    {
+                                        node_flags |= ImGuiTreeNodeFlags_Selected;
+                                    }
+                                    // Generate a unique id for this item using the loop variables
+                                    int id = l + (10 * k ) + (100 * j) + (1000 * i);
+                                    ImGui::TreeNodeEx((void *)(intptr_t)id, node_flags, "File %d", id);
+                                    if (ImGui::IsItemClicked())
+                                    {
+                                        state.patient_index = i;
+                                        state.study_index = j;
+                                        state.series_index = k;
+                                        state.file_index = l;
+                                        
+                                        //node_clicked = i;
+                                    }
+                                }
+                                ImGui::TreePop();
+                            }
+                        }
+                        ImGui::TreePop();
+                    }
+                }
+                ImGui::TreePop();
+            }
+            if (node_clicked != -1)
+                {
+                    // Update selection state. Process outside of tree loop to avoid visual inconsistencies during the clicking-frame.
+                    if (ImGui::GetIO().KeyCtrl)
+                        selection_mask ^= (1 << node_clicked);
+                    else
+                        selection_mask = (1 << node_clicked);
+                }
+                ImGui::PopStyleVar();
+            //if (ImGui::Selectable((char *)state.dicom_file_paths[i].filename().string().c_str(), state.selected_dicom_file == i))
+            // state.selected_dicom_file = i;
         }
         ImGui::EndChild();
         ImGui::SameLine();
