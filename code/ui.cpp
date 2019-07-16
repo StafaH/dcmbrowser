@@ -10,10 +10,10 @@ void InitializeImGui(GLFWwindow *window, const char *glsl_version)
     (void)io;
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    
+
     // Disables caching of UI state to ini file
     io.IniFilename = NULL;
-    
+
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
     //ImGui::StyleColorsClassic();
@@ -73,261 +73,17 @@ void RenderImGui(GLFWwindow *window, UIState &state, std::vector<DicomPatient> &
     ImGui::SetNextWindowSize(ImVec2(width, height));
     if (ImGui::Begin("dcmbrowser", &state.open, state.window_flags))
     {
-        // Menu Bar
-        if (ImGui::BeginMainMenuBar())
-        {
-            if (ImGui::BeginMenu("File"))
-            {
-                if (ImGui::MenuItem("Open"))
-                {
-                }
-                ImGui::EndMenu();
-            }
-            ImGui::EndMainMenuBar();
-        }
+        RenderMenuBar(state);
 
-        // File Browsing
-        ImGui::Text("Enter folder with DICOM files:");
-        ImGui::SameLine();
-        ImGui::InputText("", state.search_folder_path, IM_ARRAYSIZE(state.search_folder_path));
-        ImGui::SameLine();
-        if (ImGui::Button("...##searchdir"))
-        {
-            const char *folder_path = tinyfd_selectFolderDialog("Select a DICOM Folder", "C:/");
-            if (!folder_path)
-            { /*Process Errors*/
-            }
-            strcpy_s(state.search_folder_path, folder_path);
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Scan"))
-        {
-            if (!state.scan_subdirectories)
-            {
-                for (auto &p : std::filesystem::directory_iterator(state.search_folder_path))
-                {
-                    if (p.path().extension() == ".dcm")
-                    {
-                        state.dicom_file_paths.emplace_back(p);
+        RenderBrowseAndScan(state, dicom_collection);
 
-                        // Load all the files
-                        DcmFileFormat fileformat;
-                        OFCondition status = fileformat.loadFile(p.path().string().c_str());
+        RenderDicomFileTree(state, dicom_collection);
 
-                        if (!status.good())
-                            std::cout << "error opening dicom file" << std::endl;
-
-                        OFString patient_name;
-                        OFString study_id;
-                        OFString series_id;
-                        status = fileformat.getDataset()->findAndGetOFString(DCM_PatientName, patient_name);
-                        status = fileformat.getDataset()->findAndGetOFString(DCM_StudyID, study_id);
-                        status = fileformat.getDataset()->findAndGetOFString(DCM_SeriesNumber, series_id);
-
-                        if (!status.good())
-                            std::cout << "error reading main DICOM tags" << std::endl;
-
-                        if (dicom_collection.empty())
-                        {
-                            // Fill the collection with the first ever entry
-                            DicomPatient new_patient;
-                            new_patient.patient_name = patient_name;
-                            DicomStudy new_study;
-                            new_study.study_id = study_id;
-                            DicomSeries new_series;
-                            new_series.series_id = series_id;
-
-                            new_series.dicom_files.push_back(fileformat);
-                            new_study.dicom_series.push_back(new_series);
-                            new_patient.dicom_studies.push_back(new_study);
-                            dicom_collection.push_back(new_patient);
-                        }
-                        else
-                        { // Check for previous entries
-                            for (int i = 0; i < dicom_collection.size(); i++)
-                            {
-                                if (dicom_collection[i].patient_name == patient_name)
-                                {
-                                    for (int j = 0; j < dicom_collection[i].dicom_studies.size(); j++)
-                                    {
-                                        if (dicom_collection[i].dicom_studies[j].study_id == study_id)
-                                        {
-                                            for (int k = 0; k < dicom_collection[i].dicom_studies[j].dicom_series.size(); k++)
-                                            {
-                                                if (dicom_collection[i].dicom_studies[j].dicom_series[k].series_id == series_id)
-                                                {
-                                                    dicom_collection[i].dicom_studies[j].dicom_series[k].dicom_files.push_back(fileformat);
-                                                }
-                                                else
-                                                { // Make a new Series
-                                                    DicomSeries new_series;
-                                                    new_series.series_id = series_id;
-                                                    new_series.dicom_files.push_back(fileformat);
-                                                    dicom_collection[i].dicom_studies[j].dicom_series.push_back(new_series);
-                                                }
-                                            }
-                                        }
-                                        else
-                                        { // Make a new Study
-                                            DicomStudy new_study;
-                                            new_study.study_id = study_id;
-                                            DicomSeries new_series;
-                                            new_series.series_id = series_id;
-                                            new_series.dicom_files.push_back(fileformat);
-                                            dicom_collection[i].dicom_studies.push_back(new_study);
-                                        }
-                                    }
-                                }
-                                else
-                                { // Make a new patient group
-                                    DicomPatient new_patient;
-                                    new_patient.patient_name = patient_name;
-                                    DicomStudy new_study;
-                                    new_study.study_id = study_id;
-                                    DicomSeries new_series;
-                                    new_series.series_id = series_id;
-
-                                    new_series.dicom_files.push_back(fileformat);
-                                    new_study.dicom_series.push_back(new_series);
-                                    new_patient.dicom_studies.push_back(new_study);
-                                    dicom_collection.push_back(new_patient);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // End of scan
-                DebugDicomFileScan(dicom_collection);
-            }
-            else
-            {
-                for (auto &p : std::filesystem::recursive_directory_iterator(state.search_folder_path))
-                {
-                    if (p.path().extension() == ".dcm")
-                    {
-                    }
-                }
-            }
-        }
-
-        // Options for directory browsing scanning
-        ImGui::Checkbox("Scan subdirectories", &state.scan_subdirectories);
-
-        // File Display (Left)
-        ImGui::BeginChild("Left Pane", ImVec2(300, 600), true);
-        for (int i = 0; i < dicom_collection.size(); i++)
-        {
-            // Generate a tree node for each step of the heigharchy
-            //ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
-            static int selection_mask = (1 << 2);
-            int node_clicked = -1;
-            ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, ImGui::GetFontSize() * 3);
-
-            if (ImGui::TreeNode(dicom_collection[i].patient_name.c_str()))
-            {
-                for (int j = 0; j < dicom_collection[i].dicom_studies.size(); j++)
-                {
-                    if (ImGui::TreeNode(dicom_collection[i].dicom_studies[j].study_id.c_str()))
-                    {
-                        for (int k = 0; k < dicom_collection[i].dicom_studies[j].dicom_series.size(); k++)
-                        {
-                            if (ImGui::TreeNode(dicom_collection[i].dicom_studies[j].dicom_series[k].series_id.c_str()))
-                            {
-                                for (int l = 0; l < dicom_collection[i].dicom_studies[j].dicom_series[k].dicom_files.size(); l++)
-                                {
-                                    ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen; // ImGuiTreeNodeFlags_Bullet
-                                    if (state.patient_index == i && state.study_index == j && state.series_index == k && state.file_index == l)
-                                    {
-                                        node_flags |= ImGuiTreeNodeFlags_Selected;
-                                    }
-                                    // Generate a unique id for this item using the loop variables
-                                    int id = l + (10 * k) + (100 * j) + (1000 * i);
-                                    ImGui::TreeNodeEx((void *)(intptr_t)id, node_flags, "File %d", id);
-                                    if (ImGui::IsItemClicked())
-                                    {
-                                        state.patient_index = i;
-                                        state.study_index = j;
-                                        state.series_index = k;
-                                        state.file_index = l;
-
-                                        //node_clicked = i;
-                                    }
-                                }
-                                ImGui::TreePop();
-                            }
-                        }
-                        ImGui::TreePop();
-                    }
-                }
-                ImGui::TreePop();
-            }
-            if (node_clicked != -1)
-            {
-                // Update selection state. Process outside of tree loop to avoid visual inconsistencies during the clicking-frame.
-                if (ImGui::GetIO().KeyCtrl)
-                    selection_mask ^= (1 << node_clicked);
-                else
-                    selection_mask = (1 << node_clicked);
-            }
-            ImGui::PopStyleVar();
-            //if (ImGui::Selectable((char *)state.dicom_file_paths[i].filename().string().c_str(), state.selected_dicom_file == i))
-            // state.selected_dicom_file = i;
-        }
-        ImGui::EndChild();
         ImGui::SameLine();
 
-        // File Properties (Right)
-        ImGui::BeginChild("Right Pane", ImVec2(800, 600), true);
-        ImGui::Text("DICOM File Information;");
-        
-        ImGui::BeginTabBar("Properties Tab", ImGuiTabBarFlags_None);
-        
-        // Vectors of tags to be used for preview tab
-        std::vector<DcmTagKey> important_tags =
-            {DCM_PatientName, DCM_PatientID, DCM_StudyDate, DCM_StudyTime, DCM_StudyID, DCM_SeriesNumber,
-            DCM_ReferringPhysicianName, DCM_PatientSex, DCM_PatientBirthDate, DCM_InstanceNumber};
-        
-        if (ImGui::BeginTabItem("Preview"))
-        {
-            if (!dicom_collection.empty())
-            {
-                // Retrive the information currently indexed(selected) file
-                DcmFileFormat file = dicom_collection[state.patient_index].dicom_studies[state.study_index].dicom_series[state.series_index].dicom_files[state.file_index];
-                for (int i = 0; i < important_tags.size(); i++)
-                {
-                    OFString value;
-                    OFCondition status = file.getDataset()->findAndGetOFString(important_tags[i], value);
-                    if (!status.good()) value = "Unable to find this tag";
-                    ImGui::Text(value.c_str());
-                }
-            }
-            ImGui::EndTabItem();
+        RenderDicomFileInfo(state, dicom_collection);
 
-            if (ImGui::BeginTabItem("Tags"))
-            {
-                ImGui::Text("Some Tags");
-                ImGui::EndTabItem();
-            }
-            ImGui::EndTabBar();
-        }
-        ImGui::EndChild();
-
-        // File Manipulation Options
-        ImGui::Button("Anonymize");
-        ImGui::SameLine();
-        ImGui::Button("Organize Into Single Directory");
-        ImGui::SameLine();
-        ImGui::InputText("", state.organize_folder_path, IM_ARRAYSIZE(state.organize_folder_path));
-        ImGui::SameLine();
-        if (ImGui::Button("...##organizedir"))
-        {
-            const char *folder_path = tinyfd_selectFolderDialog("Select a DICOM Folder", "C:/");
-            if (!folder_path)
-            { /*Process Errors*/
-            }
-            strcpy_s(state.organize_folder_path, folder_path);
-        }
+        RenderExtraFeatures(state, dicom_collection);
     }
     ImGui::End();
 
@@ -349,6 +105,272 @@ void CleanupImGui()
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+}
+
+void RenderMenuBar(UIState &state)
+{
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("About"))
+            {
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+}
+
+void RenderBrowseAndScan(UIState &state, std::vector<DicomPatient> &dicom_collection)
+{
+    // File Browsing
+    ImGui::Text("Enter folder with DICOM files:");
+    ImGui::SameLine();
+    ImGui::InputText("", state.search_folder_path, IM_ARRAYSIZE(state.search_folder_path));
+    ImGui::SameLine();
+    if (ImGui::Button("...##searchdir"))
+    {
+        const char *folder_path = tinyfd_selectFolderDialog("Select a DICOM Folder", "C:/");
+        if (!folder_path)
+        { /*Process Errors*/
+        }
+        strcpy_s(state.search_folder_path, folder_path);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Scan"))
+    {
+        if (!state.scan_subdirectories)
+        {
+            for (auto &p : std::filesystem::directory_iterator(state.search_folder_path))
+            {
+                if (p.path().extension() == ".dcm")
+                {
+                    state.dicom_file_paths.emplace_back(p);
+
+                    // Load all the files
+                    DcmFileFormat fileformat;
+                    OFCondition status = fileformat.loadFile(p.path().string().c_str());
+
+                    if (!status.good())
+                        std::cout << "error opening dicom file" << std::endl;
+
+                    OFString patient_name;
+                    OFString study_id;
+                    OFString series_id;
+                    status = fileformat.getDataset()->findAndGetOFString(DCM_PatientName, patient_name);
+                    status = fileformat.getDataset()->findAndGetOFString(DCM_StudyID, study_id);
+                    status = fileformat.getDataset()->findAndGetOFString(DCM_SeriesNumber, series_id);
+
+                    if (!status.good())
+                        std::cout << "error reading main DICOM tags" << std::endl;
+
+                    if (dicom_collection.empty())
+                    {
+                        // Fill the collection with the first ever entry
+                        DicomPatient new_patient;
+                        new_patient.patient_name = patient_name;
+                        DicomStudy new_study;
+                        new_study.study_id = study_id;
+                        DicomSeries new_series;
+                        new_series.series_id = series_id;
+
+                        new_series.dicom_files.push_back(fileformat);
+                        new_study.dicom_series.push_back(new_series);
+                        new_patient.dicom_studies.push_back(new_study);
+                        dicom_collection.push_back(new_patient);
+                    }
+                    else
+                    { // Check for previous entries
+                        for (int i = 0; i < dicom_collection.size(); i++)
+                        {
+                            if (dicom_collection[i].patient_name == patient_name)
+                            {
+                                for (int j = 0; j < dicom_collection[i].dicom_studies.size(); j++)
+                                {
+                                    if (dicom_collection[i].dicom_studies[j].study_id == study_id)
+                                    {
+                                        for (int k = 0; k < dicom_collection[i].dicom_studies[j].dicom_series.size(); k++)
+                                        {
+                                            if (dicom_collection[i].dicom_studies[j].dicom_series[k].series_id == series_id)
+                                            {
+                                                dicom_collection[i].dicom_studies[j].dicom_series[k].dicom_files.push_back(fileformat);
+                                            }
+                                            else
+                                            { // Make a new Series
+                                                DicomSeries new_series;
+                                                new_series.series_id = series_id;
+                                                new_series.dicom_files.push_back(fileformat);
+                                                dicom_collection[i].dicom_studies[j].dicom_series.push_back(new_series);
+                                            }
+                                        }
+                                    }
+                                    else
+                                    { // Make a new Study
+                                        DicomStudy new_study;
+                                        new_study.study_id = study_id;
+                                        DicomSeries new_series;
+                                        new_series.series_id = series_id;
+                                        new_series.dicom_files.push_back(fileformat);
+                                        dicom_collection[i].dicom_studies.push_back(new_study);
+                                    }
+                                }
+                            }
+                            else
+                            { // Make a new patient group
+                                DicomPatient new_patient;
+                                new_patient.patient_name = patient_name;
+                                DicomStudy new_study;
+                                new_study.study_id = study_id;
+                                DicomSeries new_series;
+                                new_series.series_id = series_id;
+
+                                new_series.dicom_files.push_back(fileformat);
+                                new_study.dicom_series.push_back(new_series);
+                                new_patient.dicom_studies.push_back(new_study);
+                                dicom_collection.push_back(new_patient);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // End of scan
+            DebugDicomFileScan(dicom_collection);
+        }
+        else
+        {
+            for (auto &p : std::filesystem::recursive_directory_iterator(state.search_folder_path))
+            {
+                if (p.path().extension() == ".dcm")
+                {
+                }
+            }
+        }
+    }
+
+    // Options for directory browsing scanning
+    ImGui::Checkbox("Scan subdirectories", &state.scan_subdirectories);
+}
+
+void RenderDicomFileTree(UIState &state, std::vector<DicomPatient> &dicom_collection)
+{
+    // File Display (Left)
+    ImGui::BeginChild("Left Pane", ImVec2(300, 600), true);
+    for (int i = 0; i < dicom_collection.size(); i++)
+    {
+        // Generate a tree node for each step of the heigharchy
+        //ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+        static int selection_mask = (1 << 2);
+        int node_clicked = -1;
+        ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, ImGui::GetFontSize() * 3);
+
+        if (ImGui::TreeNode(dicom_collection[i].patient_name.c_str()))
+        {
+            for (int j = 0; j < dicom_collection[i].dicom_studies.size(); j++)
+            {
+                if (ImGui::TreeNode(dicom_collection[i].dicom_studies[j].study_id.c_str()))
+                {
+                    for (int k = 0; k < dicom_collection[i].dicom_studies[j].dicom_series.size(); k++)
+                    {
+                        if (ImGui::TreeNode(dicom_collection[i].dicom_studies[j].dicom_series[k].series_id.c_str()))
+                        {
+                            for (int l = 0; l < dicom_collection[i].dicom_studies[j].dicom_series[k].dicom_files.size(); l++)
+                            {
+                                ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen; // ImGuiTreeNodeFlags_Bullet
+                                if (state.patient_index == i && state.study_index == j && state.series_index == k && state.file_index == l)
+                                {
+                                    node_flags |= ImGuiTreeNodeFlags_Selected;
+                                }
+                                // Generate a unique id for this item using the loop variables
+                                int id = l + (10 * k) + (100 * j) + (1000 * i);
+                                ImGui::TreeNodeEx((void *)(intptr_t)id, node_flags, "File %d", id);
+                                if (ImGui::IsItemClicked())
+                                {
+                                    state.patient_index = i;
+                                    state.study_index = j;
+                                    state.series_index = k;
+                                    state.file_index = l;
+
+                                    //node_clicked = i;
+                                }
+                            }
+                            ImGui::TreePop();
+                        }
+                    }
+                    ImGui::TreePop();
+                }
+            }
+            ImGui::TreePop();
+        }
+        if (node_clicked != -1)
+        {
+            // Update selection state. Process outside of tree loop to avoid visual inconsistencies during the clicking-frame.
+            if (ImGui::GetIO().KeyCtrl)
+                selection_mask ^= (1 << node_clicked);
+            else
+                selection_mask = (1 << node_clicked);
+        }
+        ImGui::PopStyleVar();
+    }
+    ImGui::EndChild();
+}
+
+void RenderDicomFileInfo(UIState &state, std::vector<DicomPatient> &dicom_collection)
+{
+    // File Properties (Right)
+    ImGui::BeginChild("Right Pane", ImVec2(800, 600), true);
+    ImGui::Text("DICOM File Information;");
+
+    ImGui::BeginTabBar("Properties Tab", ImGuiTabBarFlags_None);
+
+    // Vectors of tags to be used for preview tab
+    std::vector<DcmTagKey> important_tags =
+        {DCM_PatientName, DCM_PatientID, DCM_StudyDate, DCM_StudyTime, DCM_StudyID, DCM_SeriesNumber,
+         DCM_ReferringPhysicianName, DCM_PatientSex, DCM_PatientBirthDate, DCM_InstanceNumber};
+
+    if (ImGui::BeginTabItem("Preview"))
+    {
+        if (!dicom_collection.empty())
+        {
+            // Retrive the information currently indexed(selected) file
+            DcmFileFormat file = dicom_collection[state.patient_index].dicom_studies[state.study_index].dicom_series[state.series_index].dicom_files[state.file_index];
+            for (int i = 0; i < important_tags.size(); i++)
+            {
+                OFString value;
+                OFCondition status = file.getDataset()->findAndGetOFString(important_tags[i], value);
+                if (!status.good())
+                    value = "Unable to find this tag";
+                ImGui::Text(value.c_str());
+            }
+        }
+        ImGui::EndTabItem();
+    }
+    if (ImGui::BeginTabItem("Tags"))
+    {
+        ImGui::Text("Some Tags");
+        ImGui::EndTabItem();
+    }
+    ImGui::EndTabBar();
+    ImGui::EndChild();
+}
+
+void RenderExtraFeatures(UIState &state, std::vector<DicomPatient> &dicom_collection)
+{
+    ImGui::Button("Anonymize");
+    ImGui::SameLine();
+    ImGui::Button("Organize Into Single Directory");
+    ImGui::SameLine();
+    ImGui::InputText("", state.organize_folder_path, IM_ARRAYSIZE(state.organize_folder_path));
+    ImGui::SameLine();
+    if (ImGui::Button("...##organizedir"))
+    {
+        const char *folder_path = tinyfd_selectFolderDialog("Select a DICOM Folder", "C:/");
+        if (!folder_path)
+        { /*Process Errors*/
+        }
+        strcpy_s(state.organize_folder_path, folder_path);
+    }
 }
 
 /* Iterate over the dicom_collection nested vectors to debug how many files were found */

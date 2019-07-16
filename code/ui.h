@@ -72,6 +72,16 @@ void InitializeImGui(GLFWwindow* window, const char* glsl_version);
 
 void RenderImGui(GLFWwindow* window, UIState& state, std::vector<DicomPatient>& dicom_collection);
 
+void RenderMenuBar(UIState& state);
+
+void RenderBrowseAndScan(UIState& state, std::vector<DicomPatient>& dicom_collection);
+
+void RenderDicomFileTree(UIState& state, std::vector<DicomPatient>& dicom_collection);
+
+void RenderDicomFileInfo(UIState& state, std::vector<DicomPatient>& dicom_collection);
+
+void RenderExtraFeatures(UIState& state, std::vector<DicomPatient>& dicom_collection);
+
 void CleanupImGui();
 
 void DebugDicomFileScan(const std::vector<DicomPatient> dicom_collection);
