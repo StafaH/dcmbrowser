@@ -15,6 +15,7 @@
 #include <dcmtk/dcmdata/dctk.h>
 
 // Local Includes
+#include "browser.h"
 #include "ui.h"
 
 static void glfw_error_callback(int error, const char *description)

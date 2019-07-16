@@ -140,113 +140,7 @@ void RenderBrowseAndScan(UIState &state, std::vector<DicomPatient> &dicom_collec
     ImGui::SameLine();
     if (ImGui::Button("Scan"))
     {
-        if (!state.scan_subdirectories)
-        {
-            for (auto &p : std::filesystem::directory_iterator(state.search_folder_path))
-            {
-                if (p.path().extension() == ".dcm")
-                {
-                    state.dicom_file_paths.emplace_back(p);
-
-                    // Load all the files
-                    DcmFileFormat fileformat;
-                    OFCondition status = fileformat.loadFile(p.path().string().c_str());
-
-                    if (!status.good())
-                        std::cout << "error opening dicom file" << std::endl;
-
-                    OFString patient_name;
-                    OFString study_id;
-                    OFString series_id;
-                    status = fileformat.getDataset()->findAndGetOFString(DCM_PatientName, patient_name);
-                    status = fileformat.getDataset()->findAndGetOFString(DCM_StudyID, study_id);
-                    status = fileformat.getDataset()->findAndGetOFString(DCM_SeriesNumber, series_id);
-
-                    if (!status.good())
-                        std::cout << "error reading main DICOM tags" << std::endl;
-
-                    if (dicom_collection.empty())
-                    {
-                        // Fill the collection with the first ever entry
-                        DicomPatient new_patient;
-                        new_patient.patient_name = patient_name;
-                        DicomStudy new_study;
-                        new_study.study_id = study_id;
-                        DicomSeries new_series;
-                        new_series.series_id = series_id;
-
-                        new_series.dicom_files.push_back(fileformat);
-                        new_study.dicom_series.push_back(new_series);
-                        new_patient.dicom_studies.push_back(new_study);
-                        dicom_collection.push_back(new_patient);
-                    }
-                    else
-                    { // Check for previous entries
-                        for (int i = 0; i < dicom_collection.size(); i++)
-                        {
-                            if (dicom_collection[i].patient_name == patient_name)
-                            {
-                                for (int j = 0; j < dicom_collection[i].dicom_studies.size(); j++)
-                                {
-                                    if (dicom_collection[i].dicom_studies[j].study_id == study_id)
-                                    {
-                                        for (int k = 0; k < dicom_collection[i].dicom_studies[j].dicom_series.size(); k++)
-                                        {
-                                            if (dicom_collection[i].dicom_studies[j].dicom_series[k].series_id == series_id)
-                                            {
-                                                dicom_collection[i].dicom_studies[j].dicom_series[k].dicom_files.push_back(fileformat);
-                                            }
-                                            else
-                                            { // Make a new Series
-                                                DicomSeries new_series;
-                                                new_series.series_id = series_id;
-                                                new_series.dicom_files.push_back(fileformat);
-                                                dicom_collection[i].dicom_studies[j].dicom_series.push_back(new_series);
-                                            }
-                                        }
-                                    }
-                                    else
-                                    { // Make a new Study
-                                        DicomStudy new_study;
-                                        new_study.study_id = study_id;
-                                        DicomSeries new_series;
-                                        new_series.series_id = series_id;
-                                        new_series.dicom_files.push_back(fileformat);
-                                        dicom_collection[i].dicom_studies.push_back(new_study);
-                                    }
-                                }
-                            }
-                            else
-                            { // Make a new patient group
-                                DicomPatient new_patient;
-                                new_patient.patient_name = patient_name;
-                                DicomStudy new_study;
-                                new_study.study_id = study_id;
-                                DicomSeries new_series;
-                                new_series.series_id = series_id;
-
-                                new_series.dicom_files.push_back(fileformat);
-                                new_study.dicom_series.push_back(new_series);
-                                new_patient.dicom_studies.push_back(new_study);
-                                dicom_collection.push_back(new_patient);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // End of scan
-            DebugDicomFileScan(dicom_collection);
-        }
-        else
-        {
-            for (auto &p : std::filesystem::recursive_directory_iterator(state.search_folder_path))
-            {
-                if (p.path().extension() == ".dcm")
-                {
-                }
-            }
-        }
+        LoadDicomFilesFromPath(state.search_folder_path, dicom_collection, state.scan_subdirectories);
     }
 
     // Options for directory browsing scanning
@@ -278,7 +172,7 @@ void RenderDicomFileTree(UIState &state, std::vector<DicomPatient> &dicom_collec
                             for (int l = 0; l < dicom_collection[i].dicom_studies[j].dicom_series[k].dicom_files.size(); l++)
                             {
                                 ImGuiTreeNodeFlags node_flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen; // ImGuiTreeNodeFlags_Bullet
-                                if (state.patient_index == i && state.study_index == j && state.series_index == k && state.file_index == l)
+                                if (state.collection_index.DoesIndexMatch(i, j, k, l))
                                 {
                                     node_flags |= ImGuiTreeNodeFlags_Selected;
                                 }
@@ -287,12 +181,7 @@ void RenderDicomFileTree(UIState &state, std::vector<DicomPatient> &dicom_collec
                                 ImGui::TreeNodeEx((void *)(intptr_t)id, node_flags, "File %d", id);
                                 if (ImGui::IsItemClicked())
                                 {
-                                    state.patient_index = i;
-                                    state.study_index = j;
-                                    state.series_index = k;
-                                    state.file_index = l;
-
-                                    //node_clicked = i;
+                                    state.collection_index = CollectionIndex(i, j, k, l);
                                 }
                             }
                             ImGui::TreePop();
@@ -334,7 +223,7 @@ void RenderDicomFileInfo(UIState &state, std::vector<DicomPatient> &dicom_collec
         if (!dicom_collection.empty())
         {
             // Retrive the information currently indexed(selected) file
-            DcmFileFormat file = dicom_collection[state.patient_index].dicom_studies[state.study_index].dicom_series[state.series_index].dicom_files[state.file_index];
+            DcmFileFormat file = GetDicomFileFromCollection(dicom_collection, state.collection_index);
             for (int i = 0; i < important_tags.size(); i++)
             {
                 OFString value;
@@ -370,29 +259,5 @@ void RenderExtraFeatures(UIState &state, std::vector<DicomPatient> &dicom_collec
         { /*Process Errors*/
         }
         strcpy_s(state.organize_folder_path, folder_path);
-    }
-}
-
-/* Iterate over the dicom_collection nested vectors to debug how many files were found */
-void DebugDicomFileScan(const std::vector<DicomPatient> dicom_collection)
-{
-    std::cout << "Found " << dicom_collection.size() << " patients" << std::endl;
-
-    for (int i = 0; i < dicom_collection.size(); i++)
-    {
-        std::cout << "      ";
-        std::cout << "Patient " << i << " has " << dicom_collection[i].dicom_studies.size() << " studies" << std::endl;
-
-        for (int j = 0; j < dicom_collection[i].dicom_studies.size(); j++)
-        {
-            std::cout << "              ";
-            std::cout << "Study " << j << " has " << dicom_collection[i].dicom_studies[j].dicom_series.size() << " series" << std::endl;
-
-            for (int k = 0; k < dicom_collection[i].dicom_studies[j].dicom_series.size(); k++)
-            {
-                std::cout << "                      ";
-                std::cout << "Series " << k << " has " << dicom_collection[i].dicom_studies[j].dicom_series[k].dicom_files.size() << " files" << std::endl;
-            }
-        }
     }
 }

@@ -5,33 +5,8 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
 #include "dcmtk/dcmdata/dctk.h"
-#include <filesystem>
 #include <vector>
-
-/*
-Dicom Grouping Hierarchy
-- Patient Name
-    - Study ID 
-        - Series ID
-*/ 
-struct DicomSeries
-{
-    OFString series_id;
-    std::vector<DcmFileFormat> dicom_files;
-};
-
-struct DicomStudy
-{
-    OFString study_id;
-    std::vector<DicomSeries> dicom_series;
-};
-
-struct DicomPatient
-{
-    OFString patient_name;
-    std::vector<DicomStudy> dicom_studies;
-
-};
+#include "browser.h"
 
 struct UIState
 {    
@@ -60,11 +35,7 @@ public:
     int selected_dicom_file = 0;
     char organize_folder_path[255] = "C:/DICOM/";
 
-    //index to store which dicom file is selected
-    int patient_index = 0;
-    int study_index = 0;
-    int series_index = 0;
-    int file_index = 0;
+    CollectionIndex collection_index = CollectionIndex();
 };
 
 // UI main class
@@ -83,6 +54,4 @@ void RenderDicomFileInfo(UIState& state, std::vector<DicomPatient>& dicom_collec
 void RenderExtraFeatures(UIState& state, std::vector<DicomPatient>& dicom_collection);
 
 void CleanupImGui();
-
-void DebugDicomFileScan(const std::vector<DicomPatient> dicom_collection);
 
