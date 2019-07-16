@@ -24,22 +24,6 @@ static void glfw_error_callback(int error, const char *description)
 
 int main(int, char **)
 {
-    // Test dcmtk
-    DcmFileFormat fileformat;
-    OFCondition status = fileformat.loadFile("test.dcm");
-    if (status.good())
-    {
-        OFString patientName;
-        if (fileformat.getDataset()->findAndGetOFString(DCM_PatientName, patientName).good())
-        {
-            std::cout << "Patient's Name: " << patientName << std::endl;
-        }
-        else
-            std::cerr << "Error: cannot access Patient's Name!" << std::endl;
-    }
-    else
-        std::cerr << "Error: cannot read DICOM file (" << status.text() << ")" << std::endl;
-
     // Setup window
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
@@ -71,14 +55,16 @@ int main(int, char **)
     InitializeImGui(window, glsl_version);
 
     UIState uiState;
-
+    //uiState.show_demo_window = true;
+    std::vector<DicomPatient> dicom_collection;
+    
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
 
         glfwPollEvents();
 
-        RenderImGui(window, uiState);
+        RenderImGui(window, uiState, dicom_collection);
         glfwSwapBuffers(window);
     }
 
