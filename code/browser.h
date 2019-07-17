@@ -3,6 +3,8 @@
 #include "dcmtk/dcmdata/dctk.h"
 #include <filesystem>
 #include <vector>
+#include <string>
+
 /*
 Dicom Grouping Hierarchy
 - Patient Name
@@ -14,6 +16,10 @@ struct DicomSeries
 {
     OFString series_id;
     std::vector<DcmFileFormat> dicom_files;
+    
+    // Cache of the directory path that has these dicom files came from
+    // currently not used, could be useful later
+    std::string directory_path;
 };
 
 struct DicomStudy

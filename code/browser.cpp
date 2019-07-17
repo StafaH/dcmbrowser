@@ -58,13 +58,22 @@ void LoadDicomFilesFromPath(char *path, std::vector<DicomPatient>& collection, b
                             {
                                 if (collection[i].dicom_studies[j].dicom_series[k].series_id == series_id)
                                 {
-                                    // Check if the file already exists
-                                    //TODO
+                                    // To avoid adding duplicate files if the same folder is scanned again, 
+                                    // we just check if the instance number exists, which should be unique to this
+                                    // dicom series
+
                                     bool exists = false;
                                     for (auto& file: collection[i].dicom_studies[j].dicom_series[k].dicom_files)
                                     {
-                                        //if (fileformat == file) exists = true;
+                                        OFString instance_number;
+                                        file.getDataset()->findAndGetOFString(DCM_InstanceNumber, instance_number);
+
+                                        OFString new_instance_number;
+                                        fileformat.getDataset()->findAndGetOFString(DCM_InstanceNumber, new_instance_number);
+                                        
+                                        if ( instance_number == new_instance_number) exists = true;
                                     }
+
                                     if (!exists) collection[i].dicom_studies[j].dicom_series[k].dicom_files.push_back(fileformat);
                                 }
                                 else
