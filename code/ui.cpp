@@ -140,7 +140,7 @@ void RenderBrowseAndScan(UIState &state, std::vector<DicomPatient> &dicom_collec
     ImGui::SameLine();
     if (ImGui::Button("Scan"))
     {
-        LoadDicomFilesFromPath(state.search_folder_path, dicom_collection, state.scan_subdirectories);
+        LoadDicomFiles(state.search_folder_path, dicom_collection, state.scan_subdirectories);
     }
 
     // Options for directory browsing scanning

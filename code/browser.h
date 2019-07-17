@@ -59,8 +59,11 @@ struct CollectionIndex
 // Returns the dicom file at a given index
 DcmFileFormat GetDicomFileFromCollection(std::vector<DicomPatient>& collection, CollectionIndex index);
 
-// Load Dicom files from directory -path- into -collection-
-void LoadDicomFilesFromPath(char* path, std::vector<DicomPatient>& collection, bool recursive);
+// Load Dicom files from directory path into collection
+void LoadDicomFiles(char *path, std::vector<DicomPatient>& collection, bool recursive);
+
+// Load individual Dicom file into the collection - used by LoadDicomFiles
+void LoadDicomFileIntoCollection(OFFilename file_name, std::vector<DicomPatient>& collection);
 
 // Debug the number of files in the collection
 void DebugDicomFileScan(const std::vector<DicomPatient>& dicom_collection);
