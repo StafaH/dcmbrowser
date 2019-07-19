@@ -9,7 +9,7 @@ void LoadDicomFiles(char *path, std::vector<DicomPatient> &collection, bool recu
 {
     if (!recursive)
     {
-        for (auto &p : std::filesystem::directory_iterator(path))
+        for (auto &p : std::filesystem::directory_iterator(path, std::filesystem::directory_options::skip_permission_denied))
         {
             if (p.path().extension() == ".dcm")
                 LoadDicomFileIntoCollection(p.path().string().c_str(), collection);
@@ -17,7 +17,7 @@ void LoadDicomFiles(char *path, std::vector<DicomPatient> &collection, bool recu
     }
     else
     {
-        for (auto &p : std::filesystem::recursive_directory_iterator(path))
+        for (auto &p : std::filesystem::recursive_directory_iterator(path, std::filesystem::directory_options::skip_permission_denied))
         {
             if (p.path().extension() == ".dcm")
                 LoadDicomFileIntoCollection(p.path().string().c_str(), collection);
