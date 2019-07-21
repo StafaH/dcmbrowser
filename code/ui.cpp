@@ -232,6 +232,10 @@ void RenderDicomFileInfo(UIState &state, std::vector<DicomPatient> &dicom_collec
                     value = "Unable to find this tag";
                 ImGui::Text(value.c_str());
             }
+            
+            // Render the image
+            //ImGui::Image((void*)(intptr_t)my_opengl_texture, ImVec2(my_image_width, my_image_height));
+            LoadImageFromDicomFile(&file);
         }
         ImGui::EndTabItem();
     }

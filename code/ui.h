@@ -1,12 +1,12 @@
 #pragma once
 
-#include <GLFW/glfw3.h>
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
 #include "dcmtk/dcmdata/dctk.h"
 #include <vector>
 #include "browser.h"
+#include <GLFW/glfw3.h>
 
 struct UIState
 {    

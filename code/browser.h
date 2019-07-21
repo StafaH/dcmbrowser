@@ -1,6 +1,10 @@
 #pragma once
 
 #include "dcmtk/dcmdata/dctk.h"
+#include "dcmtk/dcmimgle/dcmimage.h"
+
+#include "GL/glew.h"
+#include "imgui/imgui.h"
 #include <filesystem>
 #include <vector>
 #include <string>
@@ -67,3 +71,7 @@ void LoadDicomFileIntoCollection(OFFilename file_name, std::vector<DicomPatient>
 
 // Debug the number of files in the collection
 void DebugDicomFileScan(const std::vector<DicomPatient>& dicom_collection);
+
+void LoadDicomImageFromPath(char *path);
+
+void LoadImageFromDicomFile(DcmFileFormat *file);
