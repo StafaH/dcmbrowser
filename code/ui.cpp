@@ -133,7 +133,8 @@ void RenderBrowseAndScan(UIState &state, std::vector<DicomPatient> &dicom_collec
     {
         const char *folder_path = tinyfd_selectFolderDialog("Select a DICOM Folder", "C:/");
         if (!folder_path)
-        { /*Process Errors*/
+        { 
+            /*Process Errors*/
         }
         strcpy_s(state.search_folder_path, folder_path);
     }
@@ -222,20 +223,14 @@ void RenderDicomFileInfo(UIState &state, std::vector<DicomPatient> &dicom_collec
     {
         if (!dicom_collection.empty())
         {
-            // Retrive the information currently indexed(selected) file
-            DcmFileFormat file = GetDicomFileFromCollection(dicom_collection, state.collection_index);
             for (int i = 0; i < important_tags.size(); i++)
             {
-                OFString value;
-                OFCondition status = file.getDataset()->findAndGetOFString(important_tags[i], value);
-                if (!status.good())
-                    value = "Unable to find this tag";
-                ImGui::Text(value.c_str());
+                const char* tag_string = LoadDicomTag(dicom_collection, state.collection_index, important_tags[i]); 
+                ImGui::Text(tag_string);
             }
             
-            // Render the image
-            //ImGui::Image((void*)(intptr_t)my_opengl_texture, ImVec2(my_image_width, my_image_height));
-            LoadImageFromDicomFile(&file);
+            // Render the image - Generates an OpenGL texture and renders using ImGui call
+            RenderImageFromDicomFile(dicom_collection, state.collection_index);
         }
         ImGui::EndTabItem();
     }

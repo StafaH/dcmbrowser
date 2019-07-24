@@ -163,9 +163,12 @@ void LoadDicomImageFromPath(char *path)
     //DicomImage(path);
 }
 
-void LoadImageFromDicomFile(DcmFileFormat *file)
+void RenderImageFromDicomFile(std::vector<DicomPatient> &collection, CollectionIndex index)
 {
-    DicomImage image(file, EXS_Unknown);
+    DcmFileFormat file = GetDicomFileFromCollection(collection, index);
+    DcmFileFormat *file_ptr = &file;
+
+    DicomImage image(file_ptr, EXS_Unknown);
 
     if (image.getStatus() == EIS_Normal)
     {
@@ -175,7 +178,7 @@ void LoadImageFromDicomFile(DcmFileFormat *file)
         if (image.isMonochrome())
         {
             image.setMinMaxWindow();
-            
+
             Uint8 *pixelData = (Uint8 *)(image.getOutputData(8 /* bits */));
 
             if (pixelData != NULL)
@@ -186,10 +189,11 @@ void LoadImageFromDicomFile(DcmFileFormat *file)
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                 glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-                
+
+                // Use GL_LUMINANCE because dicom files are greyscale 8-bit
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, image_width, image_height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixelData);
 
-                ImGui::Image((void*)(intptr_t)dicom_texture, ImVec2(image_width, image_height));
+                ImGui::Image((void *)(intptr_t)dicom_texture, ImVec2(image_width, image_height));
 
                 //glDeleteTextures(1, &dicom_texture);
             }
@@ -197,17 +201,14 @@ void LoadImageFromDicomFile(DcmFileFormat *file)
     }
     else
         std::cerr << "Error: cannot load DICOM image (" << DicomImage::getString(image.getStatus()) << ")" << std::endl;
+}
 
-    // int my_image_width, my_image_height;
-    // unsigned char *my_image_data = stbi_load("my_image.png", &my_image_width, &my_image_height, NULL, 4);
-    // // Turn the RGBA pixel data into an OpenGL texture:
-    // GLuint my_opengl_texture;
-    // glGenTextures(1, &my_opengl_texture);
-    // glBindTexture(GL_TEXTURE_2D, my_opengl_texture);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
-    // // Now that we have an OpenGL texture, assuming our imgui rendering function (imgui_impl_xxx.cpp file) takes GLuint as ImTextureID, we can display it:
-    // ImGui::Image((void *)(intptr_t)my_opengl_texture, ImVec2(my_image_width, my_image_height));
+const char *LoadDicomTag(std::vector<DicomPatient> &collection, CollectionIndex index, DcmTagKey tag)
+{
+    DcmFileFormat file = GetDicomFileFromCollection(collection, index);
+    OFString value;
+    OFCondition status = file.getDataset()->findAndGetOFString(tag, value);
+    if (!status.good())
+        value = "Unable to find this tag";
+    return value.c_str();
 }

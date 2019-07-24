@@ -58,7 +58,9 @@ struct CollectionIndex
     int file_index = 0;
 };
 
-/* Helper Function */
+//////////////////////
+/* Helper Functions */
+//////////////////////
 
 // Returns the dicom file at a given index
 DcmFileFormat GetDicomFileFromCollection(std::vector<DicomPatient>& collection, CollectionIndex index);
@@ -72,6 +74,12 @@ void LoadDicomFileIntoCollection(OFFilename file_name, std::vector<DicomPatient>
 // Debug the number of files in the collection
 void DebugDicomFileScan(const std::vector<DicomPatient>& dicom_collection);
 
+// Unused
 void LoadDicomImageFromPath(char *path);
 
-void LoadImageFromDicomFile(DcmFileFormat *file);
+// Generates an OpenGL texture and renders using ImGui call
+void RenderImageFromDicomFile(std::vector<DicomPatient>& collection, CollectionIndex index);
+
+// Load a single tag from a dicom file found in the collection
+const char* LoadDicomTag(std::vector<DicomPatient>& collection, CollectionIndex index, DcmTagKey tag);
+
