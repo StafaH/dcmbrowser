@@ -241,6 +241,34 @@ void RenderDicomFileInfo(UIState &state, std::vector<DicomPatient> &dicom_collec
     }
     if (ImGui::BeginTabItem("Tags"))
     {
+        DcmStack stack;
+        DcmObject* obj = NULL;
+        DcmElement* elem = NULL;
+        
+        DcmFileFormat file = GetDicomFileFromCollection(dicom_collection, state.collection_index);
+        OFCondition iterator_status = file.getDataset()->nextObject(stack, OFTrue);
+
+        while (iterator_status.good())
+        {
+            obj = stack.top();
+            DcmEVR identifier = obj->ident();
+
+            DcmTag tag = obj->getTag();
+            const char* tag_name = tag.getTagName();
+            
+            elem = (DcmElement*)obj;
+            OFString value;
+            elem->getOFString(value, 0);
+
+            ImGui::Text(tag_name);
+            ImGui::SameLine();
+            ImGui::Text(":  ");
+            ImGui::SameLine();
+            ImGui::Text(value.c_str());
+
+            iterator_status = file.getDataset()->nextObject(stack, OFTrue);
+        }
+
         ImGui::Text("Some Tags");
         ImGui::EndTabItem();
     }
