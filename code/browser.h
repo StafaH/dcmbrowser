@@ -58,6 +58,13 @@ struct CollectionIndex
     int file_index = 0;
 };
 
+struct DicomImageTexture
+{
+    void* texture_id;
+    int height;
+    int width;
+};
+
 //////////////////////
 /* Helper Functions */
 //////////////////////
@@ -78,7 +85,7 @@ void DebugDicomFileScan(const std::vector<DicomPatient>& dicom_collection);
 void LoadDicomImageFromPath(char *path);
 
 // Generates an OpenGL texture and renders using ImGui call
-void RenderImageFromDicomFile(std::vector<DicomPatient>& collection, CollectionIndex index);
+DicomImageTexture LoadImageFromDicomFile(std::vector<DicomPatient>& collection, CollectionIndex index);
 
 // Load a single tag from a dicom file found in the collection
 const char* LoadDicomTag(std::vector<DicomPatient>& collection, CollectionIndex index, DcmTagKey tag);

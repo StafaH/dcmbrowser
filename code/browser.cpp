@@ -163,8 +163,9 @@ void LoadDicomImageFromPath(char *path)
     //DicomImage(path);
 }
 
-void RenderImageFromDicomFile(std::vector<DicomPatient> &collection, CollectionIndex index)
+DicomImageTexture LoadImageFromDicomFile(std::vector<DicomPatient> &collection, CollectionIndex index)
 {
+    DicomImageTexture dicom_texture;
     DcmFileFormat file = GetDicomFileFromCollection(collection, index);
     DcmFileFormat *file_ptr = &file;
 
@@ -183,9 +184,9 @@ void RenderImageFromDicomFile(std::vector<DicomPatient> &collection, CollectionI
 
             if (pixelData != NULL)
             {
-                GLuint dicom_texture;
-                glGenTextures(1, &dicom_texture);
-                glBindTexture(GL_TEXTURE_2D, dicom_texture);
+                GLuint texture_id;
+                glGenTextures(1, &texture_id);
+                glBindTexture(GL_TEXTURE_2D, texture_id);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                 glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
@@ -193,14 +194,20 @@ void RenderImageFromDicomFile(std::vector<DicomPatient> &collection, CollectionI
                 // Use GL_LUMINANCE because dicom files are greyscale 8-bit
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE8, image_width, image_height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixelData);
 
-                ImGui::Image((void *)(intptr_t)dicom_texture, ImVec2(image_width, image_height));
+                dicom_texture.height = image_height;
+                dicom_texture.width = image_width;
+                dicom_texture.texture_id = (void *)(intptr_t)texture_id;
 
                 //glDeleteTextures(1, &dicom_texture);
             }
         }
     }
     else
+    {
         std::cerr << "Error: cannot load DICOM image (" << DicomImage::getString(image.getStatus()) << ")" << std::endl;
+    }
+
+    return dicom_texture;
 }
 
 const char *LoadDicomTag(std::vector<DicomPatient> &collection, CollectionIndex index, DcmTagKey tag)

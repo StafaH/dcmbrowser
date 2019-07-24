@@ -230,7 +230,9 @@ void RenderDicomFileInfo(UIState &state, std::vector<DicomPatient> &dicom_collec
             }
             
             // Render the image - Generates an OpenGL texture and renders using ImGui call
-            RenderImageFromDicomFile(dicom_collection, state.collection_index);
+            DicomImageTexture texture = LoadImageFromDicomFile(dicom_collection, state.collection_index);
+        
+            ImGui::Image(texture.texture_id, ImVec2(texture.width, texture.height));
         }
         ImGui::EndTabItem();
     }
