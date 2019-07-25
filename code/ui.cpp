@@ -1,5 +1,4 @@
 #include "ui.h"
-#include "tinyfiledialogs/tinyfiledialogs.h"
 
 void InitializeImGui(GLFWwindow *window, const char *glsl_version)
 {
@@ -21,21 +20,6 @@ void InitializeImGui(GLFWwindow *window, const char *glsl_version)
     // Setup Platform/Renderer bindings
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
-
-    // Load Fonts
-    // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-    // - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-    // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-    // - Read 'misc/fonts/README.txt' for more instructions and details.
-    // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-    //io.Fonts->AddFontDefault();
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/ProggyTiny.ttf", 10.0f);
-    //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
-    //IM_ASSERT(font != NULL);
 }
 
 void RenderImGui(GLFWwindow *window, UIState &state, std::vector<DicomPatient> &dicom_collection)
@@ -71,9 +55,10 @@ void RenderImGui(GLFWwindow *window, UIState &state, std::vector<DicomPatient> &
     int width, height;
     glfwGetWindowSize(window, &width, &height);
     ImGui::SetNextWindowSize(ImVec2(width, height));
+
     if (ImGui::Begin("dcmbrowser", &state.open, state.window_flags))
     {
-        RenderMenuBar(state);
+        RenderMenuBar(window, state);
 
         RenderBrowseAndScan(state, dicom_collection);
 
@@ -83,12 +68,13 @@ void RenderImGui(GLFWwindow *window, UIState &state, std::vector<DicomPatient> &
 
         RenderDicomFileInfo(state, dicom_collection);
 
-        RenderExtraFeatures(state, dicom_collection);
-    }
-    ImGui::End();
+        //RenderExtraFeatures(state, dicom_collection);
 
-    if (state.show_demo_window)
-        ImGui::ShowDemoWindow(&state.show_demo_window);
+        ImGui::End();
+    }
+
+    // Debug - To see other ImGui Features
+    //ImGui::ShowDemoWindow(&state.show_demo_window);
 
     // Rendering
     ImGui::Render();
@@ -107,18 +93,44 @@ void CleanupImGui()
     ImGui::DestroyContext();
 }
 
-void RenderMenuBar(UIState &state)
+void RenderMenuBar(GLFWwindow *window, UIState &state)
 {
+    // Popup menu cannot be called directly from MenuItem as the id hash inside the menu bar if statement
+    // is changed, and so the id's do not match unless called form outside the menu bar code
+
+    bool show_about_popup = false;
+
     if (ImGui::BeginMainMenuBar())
     {
         if (ImGui::BeginMenu("File"))
         {
             if (ImGui::MenuItem("About"))
             {
+                show_about_popup = true;
             }
+            if (ImGui::MenuItem("Close"))
+            {
+                glfwSetWindowShouldClose(window, GL_TRUE);
+            }
+
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
+    }
+
+    if (show_about_popup)
+        ImGui::OpenPopup("about_popup");
+    
+    if (ImGui::BeginPopup("about_popup"))
+    {
+        ImGui::Text("This project is a lightweight and fast DICOM file browser that can be used standalone"
+        " or integrated into another project.");
+        ImGui::Text("Feel free to use this code/application as you wish, or contribute additional features!");
+        ImGui::Dummy(ImVec2(0, 20));
+        ImGui::Text("Creator: Mustafa Haiderbhai");
+        ImGui::Spacing();
+        ImGui::Text("Contact e-mail: mhaid008@uottawa.ca");
+        ImGui::EndPopup();
     }
 }
 
@@ -133,7 +145,7 @@ void RenderBrowseAndScan(UIState &state, std::vector<DicomPatient> &dicom_collec
     {
         const char *folder_path = tinyfd_selectFolderDialog("Select a DICOM Folder", "C:/");
         if (!folder_path)
-        { 
+        {
             /*Process Errors*/
         }
         strcpy_s(state.search_folder_path, folder_path);
@@ -225,13 +237,13 @@ void RenderDicomFileInfo(UIState &state, std::vector<DicomPatient> &dicom_collec
         {
             for (int i = 0; i < important_tags.size(); i++)
             {
-                const char* tag_string = LoadDicomTag(dicom_collection, state.collection_index, important_tags[i]); 
+                const char *tag_string = LoadDicomTag(dicom_collection, state.collection_index, important_tags[i]);
                 ImGui::Text(tag_string);
             }
-            
+
             // Render the image - Generates an OpenGL texture and renders using ImGui call
             DicomImageTexture texture = LoadImageFromDicomFile(dicom_collection, state.collection_index);
-        
+
             ImGui::Image(texture.texture_id, ImVec2(texture.width, texture.height));
         }
         ImGui::EndTabItem();
@@ -239,9 +251,9 @@ void RenderDicomFileInfo(UIState &state, std::vector<DicomPatient> &dicom_collec
     if (ImGui::BeginTabItem("Tags"))
     {
         DcmStack stack;
-        DcmObject* obj = NULL;
-        DcmElement* elem = NULL;
-        
+        DcmObject *obj = NULL;
+        DcmElement *elem = NULL;
+
         DcmFileFormat file = GetDicomFileFromCollection(dicom_collection, state.collection_index);
         OFCondition iterator_status = file.getDataset()->nextObject(stack, OFTrue);
 
@@ -251,9 +263,9 @@ void RenderDicomFileInfo(UIState &state, std::vector<DicomPatient> &dicom_collec
             DcmEVR identifier = obj->ident();
 
             DcmTag tag = obj->getTag();
-            const char* tag_name = tag.getTagName();
-            
-            elem = (DcmElement*)obj;
+            const char *tag_name = tag.getTagName();
+
+            elem = (DcmElement *)obj;
             OFString value;
             elem->getOFString(value, 0);
 

@@ -56,7 +56,6 @@ int main(int, char **)
     InitializeImGui(window, glsl_version);
 
     UIState uiState;
-    //uiState.show_demo_window = true;
     std::vector<DicomPatient> dicom_collection;
     
     // Main loop

@@ -4,6 +4,7 @@
 #include "imgui/imgui_impl_glfw.h"
 #include "imgui/imgui_impl_opengl3.h"
 #include "dcmtk/dcmdata/dctk.h"
+#include "tinyfiledialogs/tinyfiledialogs.h"
 #include <vector>
 #include "browser.h"
 #include <GLFW/glfw3.h>
@@ -12,7 +13,6 @@ struct UIState
 {    
 public: 
     bool open = true;
-    bool show_demo_window = false;
     ImVec4 clear_color = ImVec4(0.18f, 0.18f, 0.18f, 1.00f);
 
     // Window flags
@@ -28,14 +28,16 @@ public:
     bool no_background = true;
     bool no_bring_to_front = false;
 
-    // UI State Variables
+    // Directory Search Variables
     char search_folder_path[255];
     bool scan_subdirectories = false;
-    std::vector<std::filesystem::path> dicom_file_paths;
-    int selected_dicom_file = 0;
+    
+    // Dicom Tree variables
+    CollectionIndex collection_index = CollectionIndex();
+
+    // Dicom Extra Features
     char organize_folder_path[255] = "C:/DICOM/";
 
-    CollectionIndex collection_index = CollectionIndex();
 };
 
 // UI main class
@@ -43,7 +45,7 @@ void InitializeImGui(GLFWwindow* window, const char* glsl_version);
 
 void RenderImGui(GLFWwindow* window, UIState& state, std::vector<DicomPatient>& dicom_collection);
 
-void RenderMenuBar(UIState& state);
+void RenderMenuBar(GLFWwindow *window, UIState& state);
 
 void RenderBrowseAndScan(UIState& state, std::vector<DicomPatient>& dicom_collection);
 
