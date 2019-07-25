@@ -6,6 +6,7 @@
 #include "dcmtk/dcmdata/dctk.h"
 #include "tinyfiledialogs/tinyfiledialogs.h"
 #include <vector>
+#include <unordered_map>
 #include <string>
 #include "browser.h"
 #include <GLFW/glfw3.h>

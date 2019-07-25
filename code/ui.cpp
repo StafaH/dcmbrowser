@@ -227,25 +227,44 @@ void RenderDicomFileInfo(UIState &state, std::vector<DicomPatient> &dicom_collec
 
     ImGui::BeginTabBar("Properties Tab", ImGuiTabBarFlags_None);
 
-    // Vectors of tags to be used for preview tab
-    std::vector<DcmTagKey> important_tags =
-        {DCM_PatientName, DCM_PatientID, DCM_StudyDate, DCM_StudyTime, DCM_StudyID, DCM_SeriesNumber,
-         DCM_ReferringPhysicianName, DCM_PatientSex, DCM_PatientBirthDate, DCM_InstanceNumber};
+    // Labels and Tag Keys to look up the values for paired label
+    std::unordered_map<const char*, DcmTagKey> important_tags =
+    {
+        {"Patient Name", DCM_PatientName},
+        {"Patient Id", DCM_PatientID},
+        {"Study Date", DCM_StudyDate},
+        {"Study Time", DCM_StudyTime},
+        {"Study ID", DCM_StudyID},
+        {"Series Number", DCM_SeriesNumber},
+        {"Referring Physician Name", DCM_ReferringPhysicianName},
+        {"Patient Sex", DCM_PatientSex},
+        {"Patient Birth Date", DCM_PatientBirthDate},
+        {"Instance Number", DCM_InstanceNumber}
+    };
 
     if (ImGui::BeginTabItem("Preview"))
     {
         if (!dicom_collection.empty())
         {
-            for (int i = 0; i < important_tags.size(); i++)
-            {
-                const char *tag_string = LoadDicomTag(dicom_collection, state.collection_index, important_tags[i]);
-                ImGui::Text(tag_string);
-            }
+            ImGui::Columns(2, "preview_tags");
+            ImGui::Text("Tag Name"); ImGui::NextColumn();
+            ImGui::Text("Tag Value"); ImGui::NextColumn();
+            ImGui::Separator();
 
+            for (auto& tag : important_tags)
+            {
+                ImGui::Text(tag.first); ImGui::NextColumn();
+                const char *tag_string = LoadDicomTag(dicom_collection, state.collection_index, tag.second);
+                ImGui::Text(tag_string); ImGui::NextColumn();
+                ImGui::Separator();
+            }
+            ImGui::Columns(1);
+            
             // Render the image - Generates an OpenGL texture and renders using ImGui call
             DicomImageTexture texture = LoadImageFromDicomFile(dicom_collection, state.collection_index);
-
-            ImGui::Image(texture.texture_id, ImVec2(texture.width, texture.height));
+            ImGui::Dummy(ImVec2(0, 15));
+            ImGui::Dummy(ImVec2(250, 0)); ImGui::SameLine();
+            ImGui::Image(texture.texture_id, ImVec2(256, 256));
         }
         ImGui::EndTabItem();
     }

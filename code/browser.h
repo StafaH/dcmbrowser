@@ -90,3 +90,4 @@ DicomImageTexture LoadImageFromDicomFile(std::vector<DicomPatient>& collection, 
 // Load a single tag from a dicom file found in the collection
 const char* LoadDicomTag(std::vector<DicomPatient>& collection, CollectionIndex index, DcmTagKey tag);
 
+
