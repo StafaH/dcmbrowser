@@ -74,6 +74,7 @@ void RenderImGui(GLFWwindow *window, UIState &state, std::vector<DicomPatient> &
     }
 
     // Debug - To see other ImGui Features
+    state.show_demo_window = true;
     //ImGui::ShowDemoWindow(&state.show_demo_window);
 
     // Rendering
@@ -257,6 +258,14 @@ void RenderDicomFileInfo(UIState &state, std::vector<DicomPatient> &dicom_collec
         DcmFileFormat file = GetDicomFileFromCollection(dicom_collection, state.collection_index);
         OFCondition iterator_status = file.getDataset()->nextObject(stack, OFTrue);
 
+        // Begin with column headers before adding items
+        ImGui::Columns(4, "tag_columns", true);
+        ImGui::Text("Name"); ImGui::NextColumn();
+        ImGui::Text("Location"); ImGui::NextColumn();
+        ImGui::Text("VR"); ImGui::NextColumn();
+        ImGui::Text("Value"); ImGui::NextColumn();
+        ImGui::Separator();
+
         while (iterator_status.good())
         {
             obj = stack.top();
@@ -264,21 +273,25 @@ void RenderDicomFileInfo(UIState &state, std::vector<DicomPatient> &dicom_collec
 
             DcmTag tag = obj->getTag();
             const char *tag_name = tag.getTagName();
-
+            std::string tag_group = std::to_string(tag.getGTag());
+            std::string tag_elem = std::to_string(tag.getETag());
+            std::string tag_loc = tag_group + ", " + tag_elem;
+            const char *tag_type = tag.getVRName();
             elem = (DcmElement *)obj;
             OFString value;
             elem->getOFString(value, 0);
 
-            ImGui::Text(tag_name);
-            ImGui::SameLine();
-            ImGui::Text(":  ");
-            ImGui::SameLine();
-            ImGui::Text(value.c_str());
+            // Render the data into columns, seperator for horizontal borders
+            ImGui::Text(tag_name); ImGui::NextColumn();
+            ImGui::Text(tag_loc.c_str()); ImGui::NextColumn();
+            ImGui::Text(tag_type); ImGui::NextColumn();
+            ImGui::Text(value.c_str()); ImGui::NextColumn();
+            
+            ImGui::Separator();
 
             iterator_status = file.getDataset()->nextObject(stack, OFTrue);
         }
-
-        ImGui::Text("Some Tags");
+        ImGui::Columns(1);
         ImGui::EndTabItem();
     }
     ImGui::EndTabBar();

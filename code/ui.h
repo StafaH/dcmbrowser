@@ -6,6 +6,7 @@
 #include "dcmtk/dcmdata/dctk.h"
 #include "tinyfiledialogs/tinyfiledialogs.h"
 #include <vector>
+#include <string>
 #include "browser.h"
 #include <GLFW/glfw3.h>
 
@@ -38,6 +39,8 @@ public:
     // Dicom Extra Features
     char organize_folder_path[255] = "C:/DICOM/";
 
+    // Debug
+    bool show_demo_window = false;
 };
 
 // UI main class
