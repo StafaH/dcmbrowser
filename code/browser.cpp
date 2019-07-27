@@ -235,8 +235,19 @@ const char *LoadDicomTag(std::vector<DicomPatient> &collection, CollectionIndex 
     return value.c_str();
 }
 
-void CreateDirectoriesForCollection(char *path, std::vector<DicomPatient> &collection)
+void CopyAndAnonymizeCollection(char *path, std::vector<DicomPatient> &collection, bool anonymize)
 {
+
+    // Tags to clear for anonymization and what values to put
+    std::vector<DcmTagKey> anon_tags = {DCM_PatientID,
+                                        DCM_PatientBirthDate,
+                                        DCM_InstitutionName,
+                                        DCM_InstitutionAddress,
+                                        DCM_AccessionNumber,
+                                        DCM_ReferringPhysicianName,
+                                        DCM_ReferringPhysicianAddress,
+                                        DCM_OperatorsName};
+
     // Generate the root directory first from the user chosen path
     std::string path_string = path;
     std::filesystem::path root_path(path_string);
@@ -278,6 +289,16 @@ void CreateDirectoriesForCollection(char *path, std::vector<DicomPatient> &colle
                     std::filesystem::create_directory(series_path);
                 }
 
+                // Create the anonymous file directory if enabled
+                if (anonymize)
+                {
+                    std::string anonymous_series_path = series_path + "_anonymous";
+                    if (!std::filesystem::exists(anonymous_series_path))
+                    {
+                        std::filesystem::create_directory(anonymous_series_path);
+                    }
+                }
+
                 for (int l = 0; l < collection[i].dicom_studies[j].dicom_series[k].dicom_files.size(); l++)
                 {
                     // File Directories = series path + file name + .dcm
@@ -291,6 +312,28 @@ void CreateDirectoriesForCollection(char *path, std::vector<DicomPatient> &colle
                     {
                         std::string old_file_path = collection[i].dicom_studies[j].dicom_series[k].dicom_files[l].path_tofile;
                         std::filesystem::copy_file(old_file_path, new_file_path);
+                    }
+
+                    // For anonymizing, we copy all files into a new directory marked with anonymous,
+                    // and replace key tags that would provide patient/staff information
+                    if (anonymize)
+                    {
+                        std::string anonymous_series_path = series_path + "_anonymous";
+                        std::string anonymouse_file_path = anonymous_series_path + "/" + file_name_string + ".dcm";
+
+                        if (!std::filesystem::exists(anonymouse_file_path))
+                        {
+                            std::string old_file_path = collection[i].dicom_studies[j].dicom_series[k].dicom_files[l].path_tofile;
+                            std::filesystem::copy_file(old_file_path, anonymouse_file_path);
+                        }
+
+                        DcmFileFormat anon_file;
+                        anon_file.loadFile(anonymouse_file_path.c_str());
+
+                        for (auto &tag : anon_tags)
+                        {
+                            anon_file.getDataset()->putAndInsertString(tag, "Anonymous", true);
+                        }
                     }
                 }
             }

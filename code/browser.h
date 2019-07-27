@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 /*
 Dicom Grouping Hierarchy
@@ -96,6 +97,8 @@ DicomImageTexture LoadImageFromDicomFile(std::vector<DicomPatient>& collection, 
 // Load a single tag from a dicom file found in the collection
 const char* LoadDicomTag(std::vector<DicomPatient>& collection, CollectionIndex index, DcmTagKey tag);
 
-// Create a directory heiarchy for the dicom collection
-void CreateDirectoriesForCollection(char* path, std::vector<DicomPatient>& collection);
+// Copy the collection into structured directories, enabling anonymize will copy and then create 
+// a second copy with the anonymouse file
+void CopyAndAnonymizeCollection(char* path, std::vector<DicomPatient>& collection, bool anonymize);
+
 

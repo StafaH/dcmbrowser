@@ -321,12 +321,12 @@ void RenderExtraFeatures(UIState &state, std::vector<DicomPatient> &dicom_collec
 {
     if(ImGui::Button("Anonymize"))
     {
-        // Copy and override identification tags
+        CopyAndAnonymizeCollection(state.organize_folder_path, dicom_collection, true);
     }
     ImGui::SameLine();
     if (ImGui::Button("Organize Into Single Directory"))
     {
-        CreateDirectoriesForCollection(state.organize_folder_path, dicom_collection);
+        CopyAndAnonymizeCollection(state.organize_folder_path, dicom_collection, false);
     }
     ImGui::SameLine();
     ImGui::InputText("", state.organize_folder_path, IM_ARRAYSIZE(state.organize_folder_path));
