@@ -17,9 +17,9 @@ Other: To build with another compiler, just compile all the source files in the 
 
 ## Dependencies
 The following external projects were used in this software, and are acknowledged below
-1. [https://dicom.offis.de/dcmtk.php.en](DCMTK) - Used for dicom file loading and manipulation
-2. [https://github.com/ocornut/imgui](Dear ImGui) - Immediate Mode UI
-3. [https://github.com/native-toolkit/tinyfiledialogs](tinyfiledialogs) - Cross-platform file dialogs
+1. [DCMTK](https://dicom.offis.de/dcmtk.php.en) - Used for file loading and manipulation
+2. [Dear ImGui](https://github.com/ocornut/imgui) - Immediate Mode UI
+3. [tinyfiledialogs](https://github.com/native-toolkit/tinyfiledialogs) - Cross-platform file dialogs
 
 ## Usage
 Feel free to use this project freely inside your applications, and customize it to suit your needs. It can also be used as a standalone application.
