@@ -15,11 +15,17 @@ Dicom Grouping Hierarchy
     - Study ID 
         - Series ID
 */
+struct DicomFile
+{
+    DcmFileFormat file;
+    std::string path_tofile;
+};
+
 
 struct DicomSeries
 {
     OFString series_id;
-    std::vector<DcmFileFormat> dicom_files;
+    std::vector<DicomFile> dicom_files;
     
     // Cache of the directory path that has these dicom files came from
     // currently not used, could be useful later
@@ -90,4 +96,6 @@ DicomImageTexture LoadImageFromDicomFile(std::vector<DicomPatient>& collection, 
 // Load a single tag from a dicom file found in the collection
 const char* LoadDicomTag(std::vector<DicomPatient>& collection, CollectionIndex index, DcmTagKey tag);
 
+// Create a directory heiarchy for the dicom collection
+void CreateDirectoriesForCollection(char* path, std::vector<DicomPatient>& collection);
 

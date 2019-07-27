@@ -68,7 +68,7 @@ void RenderImGui(GLFWwindow *window, UIState &state, std::vector<DicomPatient> &
 
         RenderDicomFileInfo(state, dicom_collection);
 
-        //RenderExtraFeatures(state, dicom_collection);
+        RenderExtraFeatures(state, dicom_collection);
 
         ImGui::End();
     }
@@ -319,9 +319,15 @@ void RenderDicomFileInfo(UIState &state, std::vector<DicomPatient> &dicom_collec
 
 void RenderExtraFeatures(UIState &state, std::vector<DicomPatient> &dicom_collection)
 {
-    ImGui::Button("Anonymize");
+    if(ImGui::Button("Anonymize"))
+    {
+        // Copy and override identification tags
+    }
     ImGui::SameLine();
-    ImGui::Button("Organize Into Single Directory");
+    if (ImGui::Button("Organize Into Single Directory"))
+    {
+        CreateDirectoriesForCollection(state.organize_folder_path, dicom_collection);
+    }
     ImGui::SameLine();
     ImGui::InputText("", state.organize_folder_path, IM_ARRAYSIZE(state.organize_folder_path));
     ImGui::SameLine();

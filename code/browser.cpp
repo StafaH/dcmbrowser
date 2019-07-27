@@ -2,7 +2,7 @@
 
 DcmFileFormat GetDicomFileFromCollection(std::vector<DicomPatient> &collection, CollectionIndex index)
 {
-    return collection[index.patient_index].dicom_studies[index.study_index].dicom_series[index.series_index].dicom_files[index.file_index];
+    return collection[index.patient_index].dicom_studies[index.study_index].dicom_series[index.series_index].dicom_files[index.file_index].file;
 }
 
 void LoadDicomFiles(char *path, std::vector<DicomPatient> &collection, bool recursive)
@@ -56,8 +56,11 @@ void LoadDicomFileIntoCollection(OFFilename file_name, std::vector<DicomPatient>
         new_study.study_id = study_id;
         DicomSeries new_series;
         new_series.series_id = series_id;
+        DicomFile new_file;
+        new_file.file = fileformat;
+        new_file.path_tofile = file_name.getCharPointer();
 
-        new_series.dicom_files.push_back(fileformat);
+        new_series.dicom_files.push_back(new_file);
         new_study.dicom_series.push_back(new_series);
         new_patient.dicom_studies.push_back(new_study);
         collection.push_back(new_patient);
@@ -81,10 +84,10 @@ void LoadDicomFileIntoCollection(OFFilename file_name, std::vector<DicomPatient>
                                 // dicom series
 
                                 bool exists = false;
-                                for (auto &file : collection[i].dicom_studies[j].dicom_series[k].dicom_files)
+                                for (auto &dicom_file : collection[i].dicom_studies[j].dicom_series[k].dicom_files)
                                 {
                                     OFString instance_number;
-                                    file.getDataset()->findAndGetOFString(DCM_InstanceNumber, instance_number);
+                                    dicom_file.file.getDataset()->findAndGetOFString(DCM_InstanceNumber, instance_number);
 
                                     OFString new_instance_number;
                                     fileformat.getDataset()->findAndGetOFString(DCM_InstanceNumber, new_instance_number);
@@ -93,14 +96,20 @@ void LoadDicomFileIntoCollection(OFFilename file_name, std::vector<DicomPatient>
                                         exists = true;
                                 }
 
+                                DicomFile new_file;
+                                new_file.file = fileformat;
+                                new_file.path_tofile = file_name.getCharPointer();
                                 if (!exists)
-                                    collection[i].dicom_studies[j].dicom_series[k].dicom_files.push_back(fileformat);
+                                    collection[i].dicom_studies[j].dicom_series[k].dicom_files.push_back(new_file);
                             }
                             else
                             { // Make a new Series
                                 DicomSeries new_series;
                                 new_series.series_id = series_id;
-                                new_series.dicom_files.push_back(fileformat);
+                                DicomFile new_file;
+                                new_file.file = fileformat;
+                                new_file.path_tofile = file_name.getCharPointer();
+                                new_series.dicom_files.push_back(new_file);
                                 collection[i].dicom_studies[j].dicom_series.push_back(new_series);
                             }
                         }
@@ -111,7 +120,10 @@ void LoadDicomFileIntoCollection(OFFilename file_name, std::vector<DicomPatient>
                         new_study.study_id = study_id;
                         DicomSeries new_series;
                         new_series.series_id = series_id;
-                        new_series.dicom_files.push_back(fileformat);
+                        DicomFile new_file;
+                        new_file.file = fileformat;
+                        new_file.path_tofile = file_name.getCharPointer();
+                        new_series.dicom_files.push_back(new_file);
                         collection[i].dicom_studies.push_back(new_study);
                     }
                 }
@@ -124,8 +136,11 @@ void LoadDicomFileIntoCollection(OFFilename file_name, std::vector<DicomPatient>
                 new_study.study_id = study_id;
                 DicomSeries new_series;
                 new_series.series_id = series_id;
+                DicomFile new_file;
+                new_file.file = fileformat;
+                new_file.path_tofile = file_name.getCharPointer();
 
-                new_series.dicom_files.push_back(fileformat);
+                new_series.dicom_files.push_back(new_file);
                 new_study.dicom_series.push_back(new_series);
                 new_patient.dicom_studies.push_back(new_study);
                 collection.push_back(new_patient);
@@ -218,4 +233,67 @@ const char *LoadDicomTag(std::vector<DicomPatient> &collection, CollectionIndex 
     if (!status.good())
         value = "Unable to find this tag";
     return value.c_str();
+}
+
+void CreateDirectoriesForCollection(char *path, std::vector<DicomPatient> &collection)
+{
+    // Generate the root directory first from the user chosen path
+    std::string path_string = path;
+    std::filesystem::path root_path(path_string);
+    if (!std::filesystem::exists(root_path))
+    {
+        std::filesystem::create_directory(root_path);
+    }
+
+    for (int i = 0; i < collection.size(); i++)
+    {
+        // Patient Name Directories = root path + patient name
+        std::string patient_name = collection[i].patient_name.c_str();
+        std::string patient_path = path_string + "/" + patient_name;
+
+        if (!std::filesystem::exists(patient_path))
+        {
+            std::filesystem::create_directory(patient_path);
+        }
+
+        for (int j = 0; j < collection[i].dicom_studies.size(); j++)
+        {
+            // Study Directories = patient path + study name
+            std::string study_name = collection[i].dicom_studies[j].study_id.c_str();
+            std::string study_path = patient_path + "/" + study_name;
+
+            if (!std::filesystem::exists(study_path))
+            {
+                std::filesystem::create_directory(study_path);
+            }
+
+            for (int k = 0; k < collection[i].dicom_studies[j].dicom_series.size(); k++)
+            {
+                // Series Directories = study path + series name
+                std::string series_name = collection[i].dicom_studies[j].dicom_series[k].series_id.c_str();
+                std::string series_path = study_path + "/" + series_name;
+
+                if (!std::filesystem::exists(series_path))
+                {
+                    std::filesystem::create_directory(series_path);
+                }
+
+                for (int l = 0; l < collection[i].dicom_studies[j].dicom_series[k].dicom_files.size(); l++)
+                {
+                    // File Directories = series path + file name + .dcm
+                    DcmFileFormat file = collection[i].dicom_studies[j].dicom_series[k].dicom_files[l].file;
+                    OFString file_name;
+                    file.getDataset()->findAndGetOFString(DCM_InstanceNumber, file_name);
+                    std::string file_name_string = file_name.c_str();
+                    std::string new_file_path = series_path + "/" + file_name_string + ".dcm";
+
+                    if (!std::filesystem::exists(new_file_path))
+                    {
+                        std::string old_file_path = collection[i].dicom_studies[j].dicom_series[k].dicom_files[l].path_tofile;
+                        std::filesystem::copy_file(old_file_path, new_file_path);
+                    }
+                }
+            }
+        }
+    }
 }
