@@ -31,7 +31,7 @@ public:
     bool no_bring_to_front = false;
 
     // Directory Search Variables
-    char search_folder_path[255];
+    char search_folder_path[255] = "C:/";
     bool scan_subdirectories = false;
     
     // Dicom Tree variables

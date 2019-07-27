@@ -140,7 +140,7 @@ void RenderBrowseAndScan(UIState &state, std::vector<DicomPatient> &dicom_collec
     // File Browsing
     ImGui::Text("Enter folder with DICOM files:");
     ImGui::SameLine();
-    ImGui::InputText("", state.search_folder_path, IM_ARRAYSIZE(state.search_folder_path));
+    ImGui::InputText("Browse", state.search_folder_path, IM_ARRAYSIZE(state.search_folder_path));
     ImGui::SameLine();
     if (ImGui::Button("...##searchdir"))
     {
@@ -329,7 +329,7 @@ void RenderExtraFeatures(UIState &state, std::vector<DicomPatient> &dicom_collec
         CopyAndAnonymizeCollection(state.organize_folder_path, dicom_collection, false);
     }
     ImGui::SameLine();
-    ImGui::InputText("", state.organize_folder_path, IM_ARRAYSIZE(state.organize_folder_path));
+    ImGui::InputText("Organize", state.organize_folder_path, IM_ARRAYSIZE(state.organize_folder_path));
     ImGui::SameLine();
     if (ImGui::Button("...##organizedir"))
     {
